@@ -1,3 +1,5 @@
+import { Point } from "../utils/ECC";
+
 export interface ServerToClientEvents {
   matched: (roomId: string) => void;
   revealName: (payload: {
@@ -6,7 +8,7 @@ export interface ServerToClientEvents {
     username2: string;
     name2: string;
   }) => void;
-  message: (payload: { content: string; from: string }) => void;
+  message: (payload: { content: [Point, Point][]; from: string }) => void;
   messageFail: (payload: { error: string }) => void;
   endChat: (message: string) => void;
   onlineUsers: (onlineUsers: number) => void;
@@ -19,7 +21,7 @@ export interface ClientToServerEvents {
   matchmaking: (topicId: string) => Promise<void>;
   matchNotFound: (topicId: string) => void;
   revealName: () => void;
-  message: (payload: { content: string }) => Promise<void>;
+  message: (payload: { content: [Point, Point][] }) => Promise<void>;
   endChat: () => void;
   getOnlineUsers: () => void;
   leaveRoom: () => void;

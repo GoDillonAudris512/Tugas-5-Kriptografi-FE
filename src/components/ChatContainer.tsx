@@ -1,10 +1,10 @@
-/* eslint-disable max-len */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AiOutlineSend } from 'react-icons/ai';
 import { ChatData } from '../interfaces/chat';
 import socket from '../socket';
 import ChatBubble from './ChatBubble';
 import Dialogist from './Dialogist';
+import { Point, generateKeyPair, encryptString, decryptString } from '../utils/ECC';
 
 interface ChatContainerProps {
   myName?: string;
@@ -21,8 +21,17 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 }) => {
   const [message, setMessage] = useState('');
   const [chatData, setChatData] = useState<ChatData[]>([]);
+  const [privateKey, setPrivateKey] = useState<number>(0);
+  const [publicKey, setPublicKey] = useState<Point>({ x: 0, y: 0 });
 
   const [width, setWidth] = useState<number>(window.innerWidth);
+
+  useEffect(() => {
+    // Generate key pair when component mounts
+    const [privateKey, publicKey] = generateKeyPair();
+    setPrivateKey(privateKey);
+    setPublicKey(publicKey);
+  }, []);
 
   function handleWindowSizeChange() {
     setWidth(window.innerWidth);
@@ -35,17 +44,19 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   }, []);
 
   useEffect(() => {
-    socket.on('message', ({ content, from }) => {
+    socket.on('message', async ({ content, from }) => {
+      const decryptedMessage = await decryptString(privateKey, content);
       setChatData((prevData) => [
-        { message: content, isFromMe: socket.id === from },
+        { message: decryptedMessage, isFromMe: socket.id === from },
         ...prevData,
       ]);
     });
-  }, []);
+  }, [privateKey]);
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (message !== '') {
-      socket.emit('message', { content: message });
+      const encryptedMessage = await encryptString(publicKey, message);
+      socket.emit('message', { content: encryptedMessage });
       setMessage('');
     }
   };
